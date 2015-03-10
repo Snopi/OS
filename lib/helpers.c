@@ -4,8 +4,9 @@
 ssize_t read_(int fd, void *buf, size_t count) {
     size_t offset = 0;
     ssize_t ret_value;
+    char *char_buf = (char *) buf;
     while (1) {
-	ret_value = read(fd, buf + offset, count - offset);
+	ret_value = read(fd, char_buf + offset, count - offset);
 	if (ret_value < 0) {
 	    return ret_value;
 	}
@@ -19,8 +20,9 @@ ssize_t read_(int fd, void *buf, size_t count) {
 ssize_t write_(int fd, const void *buf, size_t count) {
     size_t offset = 0;
     ssize_t ret_value;
+    char *char_buf = (char *) buf;
     while (1) {
-	ret_value = write(fd, buf + offset, count - offset);
+	ret_value = write(fd, char_buf + offset, count - offset);
 	if (ret_value < 0) {
 	    return ret_value;
 	}

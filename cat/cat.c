@@ -8,6 +8,7 @@ int main() {
     while (1) {
 	ssize_t read_count = read_(STDIN_FILENO, buf, BUF_SIZE);
 	if (read_count < 0) {
+	    perror("The following error occured, while reading");
 	    return 1;
 	}
 	if (read_count == 0) {
@@ -15,6 +16,7 @@ int main() {
 	}
 	ssize_t write_count = write_(STDOUT_FILENO, buf, read_count);
 	if (write_count < 0) {
+	    perror("The following error occured, while writing");
 	    return 2;
 	}
     }
