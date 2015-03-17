@@ -43,7 +43,7 @@ ssize_t read_until(int fd, void *buf, size_t count, char delimiter) {
 			return ret_value;
 		}
 		offset += ret_value;
-		if (ret_value == 0 || char_buf[offset - 1] == delimiter) {
+		if (ret_value == 0 || offset == count || char_buf[offset - 1] == delimiter) {
 			return offset;
 		}
 	}
