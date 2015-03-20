@@ -35,15 +35,10 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 		
-		if (offset + res == 0) {
+		if (res + offset == 0) {
 			return 0;
 		}
 
-		if (res == 0) {
-			write_(STDOUT_FILENO, buf, offset);
-			return 0;
-		}
-			
 		buf[res + offset] = 0;
 		offset = 0;
 		int res_substr;
