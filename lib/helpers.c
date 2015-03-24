@@ -1,5 +1,26 @@
 #include "helpers.h"
 #include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+
+int spawn(const char * file, char * const argv []) {
+    pid_t pid = fork();
+    if (pid < 0) {
+    //no children
+        return -2;
+    }
+    int status;
+    if (!pid) {
+        execvp(file, argv);
+    }
+    pid_t wait_res = waitpid(pid, &status, 0);
+    if (wait_res != pid) {
+       // something bad has been happened 
+        return -1;
+    }
+    return status;
+}
+
 
 ssize_t read_(int fd, void *buf, size_t count) {
     size_t offset = 0;
