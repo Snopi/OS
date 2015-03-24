@@ -6,7 +6,6 @@
 int spawn(const char * file, char * const argv []) {
     pid_t pid = fork();
     if (pid < 0) {
-    //no children
         return -2;
     }
     int status;
@@ -15,7 +14,6 @@ int spawn(const char * file, char * const argv []) {
     }
     pid_t wait_res = waitpid(pid, &status, 0);
     if (wait_res != pid) {
-       // something bad has been happened 
         return -1;
     }
     return status;
