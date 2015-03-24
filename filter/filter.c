@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
         read_res = read_until(STDIN_FILENO, buf, MAX_LEN - 1, '\n');
         if (read_res < 0) {
             perror("some error occured, while reading:");
-            return 0;
+            return 1;
         }
         if (read_res == 0) {
             return 0;
@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
             write_res = write_(STDOUT_FILENO, buf, read_res + 1);
             if (write_res < 0) {
                 perror("some error occured, while writing:");
+                return 2;
             }
         }
     }
