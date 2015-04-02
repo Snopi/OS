@@ -1,6 +1,5 @@
 #include "bufio.h"
 #include <stdio.h>
-#include <string.h>
 
 struct buf_t *buf_new(size_t capacity) {
     struct buf_t * new_buf = (struct buf_t *) malloc(sizeof(struct buf_t));
@@ -80,7 +79,7 @@ ssize_t buf_flush(fd_t fd, struct buf_t *buf, size_t required) {
     size_t flushed = 0;
  
     while (flushed < required && flushed < buf->size 
-         &&  (write_res = write(fd, buf->buf, buf->size - flushed)) > 0) {
+         &&  (write_res = write(fd, buf->buf + flushed, buf->size - flushed)) >= 0) {
         flushed += write_res;
     }
     buf->size -= flushed;
