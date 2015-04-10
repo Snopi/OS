@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-
+  
 int spawn(const char * file, char * const argv []) {
     pid_t pid = fork();
     if (pid < 0) {

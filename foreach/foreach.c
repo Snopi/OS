@@ -17,20 +17,23 @@ int main(int argc, char **argv) {
     int read_res;
     int write_res;
     int spawn_res;
-    struct buf_t * in_buf = buf_new(MAX_LEN + 10);
+    struct buf_t * in_buf = buf_new(1024);
     if (!in_buf) {
         return 0;
     }
     while (1) {
         read_res = buf_getline(STDIN_FILENO, in_buf, buf);
+        if (read_res == 1) {
+            continue;
+        }
         if (read_res == 0) {
             break;
         }
-        if (!(read_res & 1)) {
+        read_res--;
+        buf[read_res] = 0;
+        if (read_res & 1) {
             continue;
         }
-        read_res--;//\n in the end always
-        buf[read_res] = 0;
         spawn_res = spawn(argv[1], arguments);
         if (!spawn_res) {
             buf[read_res] = '\n';

@@ -10,7 +10,7 @@ struct buf_t *buf_new(size_t capacity) {
     }
     new_buf->capacity = capacity;
     new_buf->size = 0;
-    new_buf->buf = (char *) malloc(capacity);
+    new_buf->buf = (char *) malloc(capacity + 1); // Some extra char for '\0' in the end for some purposes...
     if (!new_buf->buf) {
         free(new_buf);
         return NULL;
@@ -20,19 +20,23 @@ struct buf_t *buf_new(size_t capacity) {
 
 ssize_t buf_getline(fd_t fd, struct buf_t *buf, char *dest) {
     buf->buf[buf->size] = '\0';
-    char * occurence = strchr(buf->buf, '\n');
-    if (!occurence) {
-        buf_fill(fd, buf, buf->capacity - 1);
-        occurence = strchr(buf->buf, '\n');
-        if (!occurence) {
-            return 0; // No \n in all buffer
-        }
+    char * occurence;
+    int offset = 0;
+    int fill_res;
+    while (!(occurence = strchr(buf->buf, '\n'))) {
+        memmove(dest + offset, buf->buf, buf->size);
+        offset += buf->size;
+        buf->size = 0;
+        buf_fill(fd, buf, 1);
+        buf->buf[buf->size] = '\0';
+        if (!buf->size)
+            return offset;
     }
     int cnt = occurence - buf->buf + 1;
-    memcpy(dest, buf->buf, cnt);
+    memcpy(dest + offset, buf->buf, cnt);
     memmove(buf->buf, occurence + 1, buf->size - cnt);
     buf->size -= cnt;
-    return cnt;
+    return cnt + offset;
 }
 
 void buf_free(struct buf_t * b) {
