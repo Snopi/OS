@@ -8,7 +8,6 @@ int main() {
     int b_fill;
     while(1) {
         b_fill = buf_fill(STDIN_FILENO, b, buf_capacity(b));
-//        printf("bfill = %d\n", b_fill);
         if (b_fill < 0) {
             if (buf_flush(STDOUT_FILENO, b, buf_size(b)) < 0) {
                 return 2;
