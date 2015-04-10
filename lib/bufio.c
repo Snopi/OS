@@ -1,5 +1,7 @@
 #include "bufio.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct buf_t *buf_new(size_t capacity) {
     struct buf_t * new_buf = (struct buf_t *) malloc(sizeof(struct buf_t));
@@ -14,6 +16,23 @@ struct buf_t *buf_new(size_t capacity) {
         return NULL;
     }
     return new_buf;
+}
+
+ssize_t buf_getline(fd_t fd, struct buf_t *buf, char *dest) {
+    buf->buf[buf->size] = '\0';
+    char * occurence = strchr(buf->buf, '\n');
+    if (!occurence) {
+        buf_fill(fd, buf, buf->capacity - 1);
+        occurence = strchr(buf->buf, '\n');
+        if (!occurence) {
+            return 0; // No \n in all buffer
+        }
+    }
+    int cnt = occurence - buf->buf + 1;
+    memcpy(dest, buf->buf, cnt);
+    memmove(buf->buf, occurence + 1, buf->size - cnt);
+    buf->size -= cnt;
+    return cnt;
 }
 
 void buf_free(struct buf_t * b) {
@@ -77,8 +96,8 @@ ssize_t buf_flush(fd_t fd, struct buf_t *buf, size_t required) {
 
     ssize_t write_res;
     size_t flushed = 0;
- 
-    while (flushed < required && flushed < buf->size 
+
+    while (flushed < required && flushed < buf->size
          &&  (write_res = write(fd, buf->buf + flushed, buf->size - flushed)) >= 0) {
         flushed += write_res;
     }
