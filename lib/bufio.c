@@ -77,8 +77,8 @@ ssize_t buf_flush(fd_t fd, struct buf_t *buf, size_t required) {
 
     ssize_t write_res;
     size_t flushed = 0;
- 
-    while (flushed < required && flushed < buf->size 
+
+    while (flushed < required && flushed < buf->size
          &&  (write_res = write(fd, buf->buf + flushed, buf->size - flushed)) >= 0) {
         flushed += write_res;
     }
