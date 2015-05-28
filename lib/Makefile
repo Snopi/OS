@@ -7,10 +7,10 @@ libbufio.so: bufio.o
 	gcc -shared bufio.o -o libbufio.so
 
 
-helpers.o: helpers.c
+helpers.o: helpers.c helpers.h
 	gcc -c -fPIC -std=c99 helpers.c	-o helpers.o
 
-bufio.o: bufio.c 
+bufio.o: bufio.c bufio.h
 	gcc -c -fPIC -std=c99 bufio.c	-o bufio.o
 
 
