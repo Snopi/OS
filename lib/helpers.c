@@ -1,10 +1,12 @@
+#define _GNU_SOURCE 
+//man said that
 #include "helpers.h"
+#include <fcntl.h> //pipes
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h> //pipes
 
 char * mstrdup(const char * str) {
     int n = strlen(str) + 1;
@@ -46,7 +48,38 @@ int runpiped(execargs_t ** programs, size_t n) {
         return 0;
     }
     int pipes[n - 1][2]; //lots of pipes;
+    // throw from here <<<<< [0] <<<<<< [1] <<<<< write here
     int progs_pids[n];
+    for (int i = 0; i < n - 1; i++) {
+        pipe2(pipes[i], O_CLOEXEC); //autoclose all this pipes on exec
+        //only dupped will survive
+    }  
+    for (int i = 0; i < n; i++) {
+        if ((progs_pids[i] = fork()) == 0) { //i'm child
+            if (i) { //I need new STDIN
+                dup2(pipes[i - 1][0], STDIN_FILENO);
+            }
+            if (i != n - 1) { // I need new STDOUT
+                dup2(pipes[i][1], STDOUT_FILENO); 
+            }
+            execvp(programs[i]->program_arguments[0], programs[i]->program_arguments);
+            _exit(-1); //Something has gone wrong...
+        }
+        if (progs_pids[i] < 0) { //someone fails
+            return -1;
+        }
+    }
+    //parent doesn't need pipes
+    for (int i = 0; i < n - 1; i++) 
+        close(pipes[i][1]), close(pipes[i][0]);
+    
+    int res = 0;
+    int child_res;
+    for (int i = 0; i < n; i++) {
+        waitpid(progs_pids[i], &child_res, 0); //progs_pids.foreach(Thread::join)
+        res |= child_res;
+    }
+    return res; 
 }
 
 
