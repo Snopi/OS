@@ -8,20 +8,14 @@
 #define COMMANDS_LIMIT 128
 #define TOKENS_PER_COMMAND_LIMIT 512
 
-void sigint_handler(int sig) {} // ignore it
+void sigint_ha(int sig) {} // ignore it
 
 int main() {
- //   struct sigaction sa;
- //   bzero(&sa, sizeof(sa));
- //   sa.sa_handler = &sigint_h;
- //   if (sigaction(SIGINT, &sa, NULL) < 0)
- //       return 1;
-    struct sigaction act;
-    memset(&act, '\0', sizeof(act));
-    act.sa_handler = &sigint_handler;
-   
-    if (sigaction(SIGINT, &act, NULL) < 0)
-        return 1;  
+    struct sigaction sa;
+    bzero(&sa, sizeof(sa));
+    sa.sa_handler = &sigint_ha;
+    if (sigaction(SIGINT, &sa, NULL) < 0)
+        return 1;
     
     struct buf_t* b = buf_new(BUF_SIZE);
     char line[2 * BUF_SIZE];
@@ -44,7 +38,7 @@ int main() {
         int com_count = 0;
         while (p) {
             commands[com_count++] = p;
-            printf("com %d\t%s\n", com_count - 1, p);
+    //        printf("com %d\t%s\n", com_count - 1, p);
             p = strtok(0, "|");
         }
         for (int i = 0; i < com_count; i++) {
@@ -52,7 +46,7 @@ int main() {
             int t_c = 0;
             while (p) {
                 command_tokens[i][t_c++] = p;
-                printf("com %d\t tok:%d\t %s\n", i, t_c - 1, p);
+   //             printf("com %d\t tok:%d\t %s\n", i, t_c - 1, p);
                 p = strtok(0, " ");
             }
             command_tokens[i][t_c] = NULL;
