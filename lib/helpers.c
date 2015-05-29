@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 
 char * mstrdup(const char * str) {
     int n = strlen(str) + 1;
@@ -42,6 +43,19 @@ void args_free(execargs_t * args) {
     free(args->program_arguments);
 }
 
+//is it a solution? 
+//sig handler with some variables in LIBRARY
+
+int prog_count;
+int* kill_progs;
+void sigint_ha(int s) {
+    for (int i = 0; i < prog_count; i++) {
+        kill(kill_progs[i], SIGKILL);
+    }
+    prog_count = 0;
+}
+
+
 int runpiped(execargs_t ** programs, size_t n) {
     if (!n) {
         //lal input; You want nothing...
@@ -73,12 +87,22 @@ int runpiped(execargs_t ** programs, size_t n) {
     for (int i = 0; i < n - 1; i++) 
         close(pipes[i][1]), close(pipes[i][0]);
     
+    prog_count = n;
+    kill_progs = progs_pids;
+    
+    struct sigaction sa;
+    bzero(&sa, sizeof(sa));
+    sa.sa_handler = &sigint_ha;
+    if (sigaction(SIGINT, &sa, NULL) < 0)
+        return -1;
+      
     int res = 0;
     int child_res;
     for (int i = 0; i < n; i++) {
         waitpid(progs_pids[i], &child_res, 0); //progs_pids.foreach(Thread::join)
         res |= child_res;
     }
+
     return res; 
 }
 

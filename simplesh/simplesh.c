@@ -15,7 +15,7 @@ int main() {
     bzero(&sa, sizeof(sa));
     sa.sa_handler = &sigint_ha;
     if (sigaction(SIGINT, &sa, NULL) < 0)
-        return 1;
+        return -1;
     
     struct buf_t* b = buf_new(BUF_SIZE);
     char line[2 * BUF_SIZE];
