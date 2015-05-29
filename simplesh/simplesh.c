@@ -4,15 +4,19 @@
 #include <string.h>
 #define BUF_SIZE 4096
 #define COMMANDS_LIMIT 128
-#define TOKENS_PER_COMMAND_LIMIT 1024
+#define TOKENS_PER_COMMAND_LIMIT 512
 
 int main() {
     struct buf_t* b = buf_new(BUF_SIZE);
     char line[3*BUF_SIZE];
     char* commands[COMMANDS_LIMIT];
     char* command_tokens[COMMANDS_LIMIT][TOKENS_PER_COMMAND_LIMIT];
-    int token_count[COMMANDS_LIMIT];
-    
+    execargs_t exargs[COMMANDS_LIMIT];
+    execargs_t* arr_of_ptrs[COMMANDS_LIMIT];
+    for (int i = 0; i < COMMANDS_LIMIT; i++) {
+        arr_of_ptrs[i] = &exargs[i];
+    }
+
     write_(STDIN_FILENO, "$ ", 2);
     while (buf_getline(STDIN_FILENO, b, line) > 0) {
         char *p = strtok(line, "|");
@@ -30,7 +34,10 @@ int main() {
                 printf("com %d\t tok:%d\t %s\n", i, t_c - 1, p);
                 p = strtok(0, " ");
             }
+            command_tokens[i][t_c] = NULL;
+            exargs[i].program_arguments = (char **) &command_tokens[i];
         }
+        runpiped(arr_of_ptrs, com_count);
         write_(STDIN_FILENO, "$ ", 2);
     };
 
