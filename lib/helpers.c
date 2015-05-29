@@ -65,7 +65,14 @@ int runpiped(execargs_t ** programs, size_t n) {
     // throw from here <<<<< [0] <<<<<< [1] <<<<< write here
     int progs_pids[n];
     for (int i = 0; i < n - 1; i++) {
-        pipe2(pipes[i], O_CLOEXEC); //autoclose all this pipes on exec
+        if (pipe2(pipes[i], O_CLOEXEC)) {
+            for (int j = 0; j < i; j++) {
+                close(pipes[j][0]);
+                close(pipes[j][1]); //unf
+            }
+            return -1;
+        }
+        //autoclose all this pipes on exec
         //only dupped will survive
     }  
     for (int i = 0; i < n; i++) {
@@ -96,14 +103,14 @@ int runpiped(execargs_t ** programs, size_t n) {
     if (sigaction(SIGINT, &sa, NULL) < 0)
         return -1;
       
-    int res = 0;
+  //  int res = 0;
     int child_res;
     for (int i = 0; i < n; i++) {
         waitpid(progs_pids[i], &child_res, 0); //progs_pids.foreach(Thread::join)
-        res |= child_res;
+       // res |= child_res;
     }
 
-    return res; 
+    return 0; 
 }
 
 

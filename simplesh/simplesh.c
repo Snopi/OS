@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include <strings.h> // bzero is here
 #define BUF_SIZE 4096
 #define COMMANDS_LIMIT 128
@@ -29,16 +30,22 @@ int main() {
 
     write_(STDOUT_FILENO, "$ ", 2);
     int b_r;
-    while ((b_r = buf_getline(STDIN_FILENO, b, line)) != 0) {
-        if (b_r == -1) {
-            write_(STDOUT_FILENO, "\n$ ", 3);
-            continue; //C-c
+    while (1) {
+        b_r = buf_getline(STDIN_FILENO, b, line);
+        if (b_r == 0) {
+            return 0;
+        }
+        if (b_r < 0) {
+            if (errno == EINTR) {
+                write_(STDOUT_FILENO, "\n$ ", 3);
+                continue;
+            }
+            return -1;
         }
         char *p = strtok(line, "|");
         int com_count = 0;
         while (p) {
             commands[com_count++] = p;
-    //        printf("com %d\t%s\n", com_count - 1, p);
             p = strtok(0, "|");
         }
         for (int i = 0; i < com_count; i++) {
@@ -46,13 +53,12 @@ int main() {
             int t_c = 0;
             while (p) {
                 command_tokens[i][t_c++] = p;
-   //             printf("com %d\t tok:%d\t %s\n", i, t_c - 1, p);
                 p = strtok(0, " ");
             }
             command_tokens[i][t_c] = NULL;
             exargs[i].program_arguments = (char **) &command_tokens[i];
         }
-        runpiped(arr_of_ptrs, com_count);
+        runpiped(arr_of_ptrs, com_count); //stay alive
         write_(STDOUT_FILENO, "$ ", 2);
     };
     return 0;
