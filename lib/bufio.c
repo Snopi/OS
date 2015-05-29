@@ -27,10 +27,10 @@ ssize_t buf_getline(fd_t fd, struct buf_t *buf, char *dest) {
         memmove(dest + offset, buf->buf, buf->size);
         offset += buf->size;
         buf->size = 0;
-        buf_fill(fd, buf, 1);
+        int f_r = buf_fill(fd, buf, 1);
         buf->buf[buf->size] = '\0';
         if (!buf->size)
-            return -1; //no lines anymore
+            return f_r; //no lines anymore
     }
     *occurence = '\0';
     int cnt = occurence - buf->buf + 1;
