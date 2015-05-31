@@ -15,6 +15,7 @@ int main() {
     struct sigaction sa;
     bzero(&sa, sizeof(sa));
     sa.sa_handler = &sigint_ha;
+    //sa.sa_flags |= SA_RESTART;
     if (sigaction(SIGINT, &sa, NULL) < 0)
         return -1;
     

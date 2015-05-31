@@ -5,6 +5,7 @@ all:
 	make -C filter
 	make -C bufcat
 	make -C simplesh
+	make -C filesender
 clean:
 	make -C lib clean
 	make -C cat clean
@@ -12,3 +13,4 @@ clean:
 	make -C filter clean  
 	make -C bufcat clean
 	make -C simplesh clean
+	make -C filesender clean
