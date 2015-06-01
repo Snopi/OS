@@ -1,4 +1,3 @@
-
 //getaddrinfo includes
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -9,25 +8,54 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <stdlib.h>
 
-#define BUF_SIZE 10000
+
+
+#define BUF_SIZE 101
+#define LISTEN_THRESHOLD 100
+#define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
+
 
 int main(int argc, char **argv) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s port file [another files]\n", argv[0]);
+        return 0;
+    }
+
     struct addrinfo hints;
     struct addrinfo *result, *rp;
     bzero(&hints, sizeof hints);
+    
     hints.ai_family = AF_INET; // Ipv4
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; //bind
-    int gaddrresp = getaddrinfo(NULL, argv[1], &hints, &result);
-    
+    hints.ai_protocol = IPPROTO_TCP;
+
+    int ret_code = getaddrinfo(NULL, argv[1], &hints, &result);
+    if (ret_code) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret_code));
+        exit(EXIT_FAILURE);
+    }
+
     int serv_sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    bind(serv_sock, result->ai_addr, result->ai_addrlen);
+    if (serv_sock == -1) {
+        PERROR_AND_EXIT("Serv_socket"); 
+    }
+    
+    if (bind(serv_sock, result->ai_addr, result->ai_addrlen)) {
+        PERROR_AND_EXIT("bind"); 
+    }
     freeaddrinfo(result);
     
-    listen(serv_sock, 100);
+    if (listen(serv_sock, LISTEN_THRESHOLD)) {
+        PERROR_AND_EXIT("listen"); 
+    }
+
+
     int fd;
     while(1) {
+        int delta = rand() % (argc - 2); //random file
         struct sockaddr_in client;
         socklen_t sz = sizeof client;
         fd = accept(serv_sock, (struct sockaddr*)&client, &sz); 
@@ -35,15 +63,19 @@ int main(int argc, char **argv) {
             close(fd);
         } else {
             close(serv_sock);
-            int file = open(argv[2], O_RDONLY); 
+            printf("delta: %d\n", delta);
+            int file = open(argv[2 + delta], O_RDONLY);
+            if (file == -1) {
+                PERROR_AND_EXIT("fileopen");
+            }
             struct buf_t *b = buf_new(BUF_SIZE);
-            while(buf_fill(file, b, b->capacity) > 0) {
+            while(buf_fill(file, b, 1) > 0) {
                 buf_flush(fd, b, b->size);
             }
             buf_free(b);
-            close(fd);
             close(file);
-            return 0;
+            close(fd);
+            exit(EXIT_SUCCESS); 
         }
     }  
 
