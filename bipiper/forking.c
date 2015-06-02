@@ -40,6 +40,10 @@ int make_serv_sock(char *port) {
         PERROR_AND_EXIT("Serv_socket"); 
     }
     
+    int one = 1;
+    if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
+        PERROR_AND_EXIT("setsockopt");
+
     if (bind(serv_sock, result->ai_addr, result->ai_addrlen)) {
         PERROR_AND_EXIT("bind"); 
     }

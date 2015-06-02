@@ -1,4 +1,3 @@
-//getaddrinfo includes
 #define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -18,10 +17,9 @@
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
 
 
-
 int main(int argc, char **argv) {
     if (argc < 3) {
-        fprintf(stderr, "Usage: %s port file [another files]\n", argv[0]);
+        fprintf(stderr, "Usage: %s port file\n", argv[0]);
         return 0;
     }
     
@@ -32,7 +30,6 @@ int main(int argc, char **argv) {
     if (sigaction(SIGCHLD, &sa, NULL) < 0)
         return -1;
  
-
     struct addrinfo hints;
     struct addrinfo *result, *rp;
     bzero(&hints, sizeof hints);
@@ -49,53 +46,46 @@ int main(int argc, char **argv) {
     }
 
     int serv_sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (serv_sock == -1) {
+    if (serv_sock == -1) 
         PERROR_AND_EXIT("Serv_socket"); 
-    }
-    
-    if (bind(serv_sock, result->ai_addr, result->ai_addrlen)) {
-        PERROR_AND_EXIT("bind"); 
-    }
-    freeaddrinfo(result);
-    
-    if (listen(serv_sock, LISTEN_THRESHOLD)) {
-        PERROR_AND_EXIT("listen"); 
-    }
 
+    int one = 1;
+    if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
+        PERROR_AND_EXIT("setsockopt");   
+
+    if (bind(serv_sock, result->ai_addr, result->ai_addrlen))
+        PERROR_AND_EXIT("bind"); 
+    
+    freeaddrinfo(result);
+    //we can use SOMAXCONN here instead of LISTEN_THRESHOLD
+    if (listen(serv_sock, LISTEN_THRESHOLD)) 
+        PERROR_AND_EXIT("listen"); 
 
     int fd;
     while(1) {
-        int delta = rand() % (argc - 2); //random file
         struct sockaddr_in client;
         socklen_t sz = sizeof client;
         fd = accept(serv_sock, (struct sockaddr*)&client, &sz); 
+        
         if (fork()) {
             close(fd);
         } else {
             close(serv_sock);
-            printf("delta: %d\n", delta);
-            int file = open(argv[2 + delta], O_RDONLY);
+            int file = open(argv[2], O_RDONLY);
             if (file == -1) {
                 PERROR_AND_EXIT("fileopen");
             }
             struct buf_t *b = buf_new(BUF_SIZE);
             int success = 1;
-            while(buf_fill(file, b, 1) > 0) {
-                if (buf_flush(fd, b, b->size) <= 0) {
-                    success = 0;
-                    break; 
-                }
-            }
-            buf_free(b);
+            while(buf_fill(file, b, 1) > 0) 
+                buf_flush(fd, b, b->size); //if something goes wrong
+               // it will recieve SIGPIPE and die
+            buf_free(b);//unnecessary actions..
             close(file);
             close(fd);
-            if (success)
-                exit(EXIT_SUCCESS); 
-            else 
-                exit(EXIT_FAILURE);
+            exit(EXIT_SUCCESS); 
         }
     }  
-
 
     return 0;
 }
