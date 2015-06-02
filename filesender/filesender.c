@@ -1,4 +1,5 @@
 //getaddrinfo includes
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -9,7 +10,7 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
-
+#include <signal.h>
 
 
 #define BUF_SIZE 101
@@ -17,11 +18,20 @@
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
 
 
+
 int main(int argc, char **argv) {
     if (argc < 3) {
         fprintf(stderr, "Usage: %s port file [another files]\n", argv[0]);
         return 0;
     }
+    
+    struct sigaction sa; //Don't wait for children
+    bzero(&sa, sizeof(sa));
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGCHLD, &sa, NULL) < 0)
+        return -1;
+ 
 
     struct addrinfo hints;
     struct addrinfo *result, *rp;
