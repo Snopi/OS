@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     int serv_sock_2 = make_serv_sock(argv[2]);
        
     struct buf_t *b = buf_new(BUF_SIZE);//nifty buffer
-    while(1) {
+    while (1) {
         struct sockaddr_in client;
         socklen_t sz1 = sizeof client;
         int cli1 = accept(serv_sock_1, (struct sockaddr*)&client, &sz1); 
@@ -78,29 +78,19 @@ int main(int argc, char **argv) {
         int pid1 = fork();
         if (!pid1) {//from cli1 to cli2
             while (buf_fill(cli1, b, 1) > 0) {
-                printf("cli1 was read\n");
                 buf_flush(cli2, b, b->size);
-                printf("flushed to cli2\n");
             }
-//            close(cli1);
-//            close(cli2); 
             return 0;  
         }
         int pid2 = fork();
         if (!pid2) {//from cli2 to cli1
             while (buf_fill(cli2, b, 1) > 0) {
-                printf("cli2 was read\n");
                 buf_flush(cli1, b, b->size);
-                printf("flushed to cli1\n");
             }
-//            close(cli1);
-//            close(cli2); 
             return 0;  
         }
-        close(cli1);
+        close(cli1); //close sockets on server
         close(cli2); 
-    }  
-
-
+    } 
     return 0;
 }

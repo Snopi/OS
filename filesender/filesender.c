@@ -13,7 +13,7 @@
 #include <signal.h>
 
 
-#define BUF_SIZE 101
+#define BUF_SIZE 1024 
 #define LISTEN_THRESHOLD 100
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
 
@@ -79,13 +79,20 @@ int main(int argc, char **argv) {
                 PERROR_AND_EXIT("fileopen");
             }
             struct buf_t *b = buf_new(BUF_SIZE);
+            int success = 1;
             while(buf_fill(file, b, 1) > 0) {
-                buf_flush(fd, b, b->size);
+                if (buf_flush(fd, b, b->size) <= 0) {
+                    success = 0;
+                    break; 
+                }
             }
             buf_free(b);
             close(file);
             close(fd);
-            exit(EXIT_SUCCESS); 
+            if (success)
+                exit(EXIT_SUCCESS); 
+            else 
+                exit(EXIT_FAILURE);
         }
     }  
 
