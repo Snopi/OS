@@ -12,12 +12,9 @@
 #include <strings.h>
 #include <stdlib.h>
 
-
-
 #define BUF_SIZE 1024 
 #define LISTEN_THRESHOLD 100
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
-
 
 int make_serv_sock(char *port) {
     struct addrinfo hints;
@@ -36,22 +33,21 @@ int make_serv_sock(char *port) {
     }
 
     int serv_sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (serv_sock == -1) {
+    if (serv_sock == -1)
         PERROR_AND_EXIT("Serv_socket"); 
-    }
     
     int one = 1;
     if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) == -1)
         PERROR_AND_EXIT("setsockopt");
 
-    if (bind(serv_sock, result->ai_addr, result->ai_addrlen)) {
+    if (bind(serv_sock, result->ai_addr, result->ai_addrlen))
         PERROR_AND_EXIT("bind"); 
-    }
+    
     freeaddrinfo(result);
     
-    if (listen(serv_sock, LISTEN_THRESHOLD)) {
+    if (listen(serv_sock, LISTEN_THRESHOLD))
         PERROR_AND_EXIT("listen"); 
-    }
+    
     return serv_sock;
 }
 
@@ -76,25 +72,27 @@ int main(int argc, char **argv) {
         struct sockaddr_in client;
         socklen_t sz1 = sizeof client;
         int cli1 = accept(serv_sock_1, (struct sockaddr*)&client, &sz1); 
+   
         struct sockaddr_in client2;
         socklen_t sz2 = sizeof client2; 
-        int cli2 = accept(serv_sock_2, (struct sockaddr*)&client, &sz2); 
+        int cli2 = accept(serv_sock_2, (struct sockaddr*)&client2, &sz2); 
+  
         int pid1 = fork();
         if (!pid1) {//from cli1 to cli2
-            while (buf_fill(cli1, b, 1) > 0) {
+            while (buf_fill(cli1, b, 1) > 0)
                 buf_flush(cli2, b, b->size);
-            }
             return 0;  
         }
+
         int pid2 = fork();
         if (!pid2) {//from cli2 to cli1
-            while (buf_fill(cli2, b, 1) > 0) {
+            while (buf_fill(cli2, b, 1) > 0)
                 buf_flush(cli1, b, b->size);
-            }
             return 0;  
         }
+
         close(cli1); //close sockets on server
         close(cli2); 
-    } 
+    }
     return 0;
 }
