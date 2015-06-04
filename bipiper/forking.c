@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
                 buf_flush(cli1, b, b->size);
             return 0;
         }
-
         close(cli1); //close sockets on server
         close(cli2);
     }
