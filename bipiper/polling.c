@@ -10,10 +10,96 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <poll.h>
+#include <errno.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 2048
 #define LISTEN_THRESHOLD 100
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
+#define MAX_CLIENTS 127 
+
+int make_serv_sock(char *port);
+
+
+int main(int argc, char **argv) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s port1 port2\n", argv[0]);
+        return 0;
+    }
+    struct buf_t* bufs[MAX_CLIENTS * 2]; 
+    struct pollfd pofds[MAX_CLIENTS * 2];
+    struct pollfd *clients = pofds + 2; //for index matching
+    nfds_t cli_cnt = 0;
+    
+    pofds[0].fd = make_serv_sock(argv[1]);
+    pofds[0].events = POLLIN;
+
+    pofds[1].fd = make_serv_sock(argv[2]);
+    pofds[1].events = 0; 
+
+    int waiting_client;
+
+    while (1) {
+        int p_resp = poll(pofds, cli_cnt + 2, -1); 
+        if (p_resp < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            PERROR_AND_EXIT("Poll");
+        }
+        if (cli_cnt < MAX_CLIENTS * 2) { 
+            if (pofds[0].revents & POLLIN) {
+                waiting_client = accept(pofds[0].fd, 0, 0);
+                pofds[0].events = 0;
+                pofds[1].events = POLLIN;
+            } else if (pofds[1].revents & POLLIN) {
+                int tmp_cli = accept(pofds[1].fd, 0, 0);
+                
+                bufs[cli_cnt] = buf_new(BUF_SIZE);
+                bufs[cli_cnt + 1] = buf_new(BUF_SIZE);
+
+                clients[cli_cnt].fd = waiting_client;
+                clients[cli_cnt + 1].fd = tmp_cli;
+
+                clients[cli_cnt].events = POLLIN;
+                clients[cli_cnt + 1].events = POLLIN;
+
+                cli_cnt += 2;
+
+                pofds[0].events = POLLIN;
+                pofds[1].events = 0;
+            }
+        }
+        for (int i = 0; i < cli_cnt; i++) {
+           if (clients[i].revents & POLLIN) {
+               int old_size = bufs[i]->size;
+               int new_size = buf_fill(clients[i].fd, bufs[i], 1);
+               bufs[i]->buf[bufs[i]->size] = 0;
+               printf("Filling buf %d --- from cli %d\n---%s---\n", i, i, bufs[i]->buf);
+               if (bufs[i]->size == bufs[i]->capacity) {
+                   clients[i].events &= ~POLLIN;
+               }
+               if (old_size == new_size) {
+               }
+               if (bufs[i]->size > 0) {
+                   clients[i ^ 1].events |= POLLOUT;
+               }
+           }
+           if (clients[i].revents & POLLOUT) {
+               bufs[i]->buf[bufs[i ^ 1]->size] = 0;
+               printf("Flushing buf %d --- to cli %d\n---%s---\n", i ^ 1, i,
+                       bufs[i ^ 1]->buf);
+               buf_flush(clients[i].fd, bufs[i ^ 1], 1);
+               if (bufs[i ^ 1]->size == 0) {
+                   clients[i].events &= ~POLLOUT;
+               }
+           }
+        }
+    }
+
+    return 0;
+}
+
 
 int make_serv_sock(char *port) {
     struct addrinfo hints;
@@ -50,47 +136,4 @@ int make_serv_sock(char *port) {
     return serv_sock;
 }
 
-int main(int argc, char **argv) {
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s port1 port2\n", argv[0]);
-        return 0;
-    }
 
-    struct sigaction sa;
-    bzero(&sa, sizeof(sa));
-    sa.sa_handler = SIG_IGN;
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGCHLD, &sa, NULL) < 0)
-        return -1;
-
-    int serv_sock_1 = make_serv_sock(argv[1]);
-    int serv_sock_2 = make_serv_sock(argv[2]);
-
-    struct buf_t *b = buf_new(BUF_SIZE);//nifty buffer
-    while (1) {
-        struct sockaddr_in client;
-        socklen_t sz1 = sizeof client;
-        int cli1 = accept(serv_sock_1, (struct sockaddr*)&client, &sz1);
-
-        struct sockaddr_in client2;
-        socklen_t sz2 = sizeof client2;
-        int cli2 = accept(serv_sock_2, (struct sockaddr*)&client2, &sz2);
-
-        int pid1 = fork();
-        if (!pid1) {//from cli1 to cli2
-            while (buf_fill(cli1, b, 1) > 0)
-                buf_flush(cli2, b, b->size);
-            return 0;
-        }
-
-        int pid2 = fork();
-        if (!pid2) {//from cli2 to cli1
-            while (buf_fill(cli2, b, 1) > 0)
-                buf_flush(cli1, b, b->size);
-            return 0;
-        }
-        close(cli1); //close sockets on server
-        close(cli2);
-    }
-    return 0;
-}
