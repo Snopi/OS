@@ -90,8 +90,8 @@ int main(int argc, char **argv) {
                 clients[cli_cnt].fd = waiting_client;
                 clients[cli_cnt + 1].fd = tmp_cli;
 
-                clients[cli_cnt].events = POLLIN;
-                clients[cli_cnt + 1].events = POLLIN;
+                clients[cli_cnt].events = POLLIN | POLLRDHUP;
+                clients[cli_cnt + 1].events = POLLIN | POLLRDHUP;
 
                 clients[cli_cnt].revents = 0;
                 clients[cli_cnt + 1].revents = 0;
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
         }
     after_accpets:
         for (int i = 0; i < cli_cnt; i++) {
-            if (clients[i].revents & POLLHUP) {
+            if ((clients[i].revents & POLLHUP) || (clients[i].revents & POLLRDHUP)) {
                 clients[i].revents &= ~POLLOUT;
                 clients[i].events &= ~POLLOUT;
                 can_write[i] = 0;
