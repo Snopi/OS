@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
             if ((clients[i].revents & POLLHUP) || (clients[i].revents & POLLRDHUP)) {
                 clients[i].revents &= ~POLLOUT;
                 clients[i].events &= ~POLLOUT;
-
+                
                 can_write[i] = 0;
                 shutdown(clients[i].fd, SHUT_WR);
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
             }
             if (clients[i].revents & POLLIN) {
                 int old_size = bufs[i]->size;
-                int new_size = buf_fill(clients[i].fd, bufs[i], 1);
+                int new_size = buf_fill(clients[i].fd, bufs[i], bufs[i]->size + 1);
                 if (new_size >= 0) {
                     if (bufs[i]->size == bufs[i]->capacity) {
                         clients[i].events &= ~POLLIN;
@@ -166,7 +166,6 @@ int main(int argc, char **argv) {
                     } else {
                         bufs[i ^ 1]->size = 0; // no more writes
                         shutdown(clients[i].fd, SHUT_WR);
-                        
                         can_write[i] = 0;
                         can_read[i ^ 1] = 0; //don't read
                         clients[i ^ 1].revents &= ~POLLIN;

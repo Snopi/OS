@@ -11,7 +11,7 @@
 #include <strings.h>
 #include <stdlib.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 4096
 #define LISTEN_THRESHOLD 100
 #define PERROR_AND_EXIT(a) { perror(a); exit(EXIT_FAILURE);}
 
