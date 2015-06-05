@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
         if (!pid1) {//from cli1 to cli2
             while (buf_fill(cli1, b, 1) > 0)
                 buf_flush(cli2, b, b->size);
+            shutdown(cli2, SHUT_WR);
             return 0;
         }
 
@@ -87,6 +88,7 @@ int main(int argc, char **argv) {
         if (!pid2) {//from cli2 to cli1
             while (buf_fill(cli2, b, 1) > 0)
                 buf_flush(cli1, b, b->size);
+            shutdown(cli1, SHUT_WR);
             return 0;
         }
         close(cli1); //close sockets on server

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <poll.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #define BUF_SIZE 2048
 #define LISTEN_THRESHOLD 127
@@ -38,9 +39,12 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-        PERROR_AND_EXIT("Signal");
-    }
+    struct sigaction sa;
+    bzero(&sa, sizeof(sa));
+    sa.sa_handler = SIG_IGN;
+    if (sigaction(SIGPIPE, &sa, NULL) < 0)
+        return -1;
+
 
     struct buf_t* bufs[MAX_CLIENTS * 2];
     struct pollfd pofds[MAX_CLIENTS * 2 + 2];
@@ -112,7 +116,10 @@ int main(int argc, char **argv) {
             if ((clients[i].revents & POLLHUP) || (clients[i].revents & POLLRDHUP)) {
                 clients[i].revents &= ~POLLOUT;
                 clients[i].events &= ~POLLOUT;
+
                 can_write[i] = 0;
+                shutdown(clients[i].fd, SHUT_WR);
+
                 can_read[i ^ 1] = 0;
                 clients[i ^ 1].revents &= ~POLLIN;
                 clients[i ^ 1].events &= ~POLLIN;
@@ -135,6 +142,9 @@ int main(int argc, char **argv) {
                     if (old_size == new_size) { //EOF
                         clients[i].events &= ~POLLIN;
                         can_read[i] = 0;
+                        if (bufs[i]->size == 0) {
+                            shutdown(clients[i].fd, SHUT_WR);
+                        }
                     }
                     if (bufs[i]->size > 0) {
                         clients[i ^ 1].events |= POLLOUT;
@@ -149,11 +159,14 @@ int main(int argc, char **argv) {
                 }
             }
             if (clients[i].revents & POLLOUT) {
+                //  sleep(2);
                 int flush_res = buf_flush(clients[i].fd, bufs[i ^ 1], 1);
                 if (flush_res == -1) {
                     if (errno == EINTR || errno == EAGAIN) {
                     } else {
                         bufs[i ^ 1]->size = 0; // no more writes
+                        shutdown(clients[i].fd, SHUT_WR);
+                        
                         can_write[i] = 0;
                         can_read[i ^ 1] = 0; //don't read
                         clients[i ^ 1].revents &= ~POLLIN;
@@ -165,6 +178,7 @@ int main(int argc, char **argv) {
                 if (bufs[i ^ 1]->size == 0) {
                     clients[i].events &= ~POLLOUT;
                     if (!can_read[i ^ 1]) {
+                        shutdown(clients[i].fd, SHUT_WR);
                         can_write[i] = 0;
                     }
                 }

@@ -8,3 +8,4 @@ polling: polling.c
 
 clean:
 	rm -f forking
+	rm -f polling
